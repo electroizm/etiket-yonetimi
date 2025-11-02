@@ -159,7 +159,7 @@ Detaylar: [CREDENTIALS_GUVENLIK.md](CREDENTIALS_GUVENLIK.md)
 
 ## 📝 Lisans
 
-Bu proje Doğtaş için özel olarak geliştirilmiştir.
+Bu proje Doğtaş Batman için İsmail Güneş tarafından özel olarak geliştirilmiştir.
 
 ## 🤝 Katkıda Bulunma
 
