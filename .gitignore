@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Hassas Dosyalar - OAuth & Kimlik Bilgileri
+credentials.json
+credentials.encrypted
+token.pickle
+
+# Veri Dosyaları - Müşteri Bilgileri İçerebilir
+etiketEkle.json
+
+# Geçici Dosyalar
+*.log
+*.tmp
+~$*
+
+# Backup Dosyaları
+dogtas_backup_*.xlsx
+
+# Test Dosyaları
+test_*.py
+*_test.py
