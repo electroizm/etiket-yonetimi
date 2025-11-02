@@ -197,3 +197,4 @@ Sorun yaşarsanız:
 
 **Not:** `credentials.json` ve `etiketEkle.json` dosyaları güvenlik ve gizlilik nedeniyle bu repository'de bulunmaz. Her kullanıcı kendi dosyalarını oluşturmalıdır.
 "# etiket-yonetimi" 
+"# etiket-yonetimi" 
