@@ -8,11 +8,12 @@ project_dir = Path('d:/GoogleDrive/Fiyat/Etiket')
 
 # Veri dosyaları (exe ile birlikte paketlenecek)
 # NOT: credentials.json GÜVENLİK nedeniyle DIŞARIDA bırakıldı
+# NOT: Etiket.gsheet SPREADSHEET_ID ve email içerdiği için DIŞARIDA bırakıldı
 datas = [
     (str(project_dir / 'config.py'), '.'),
     # (str(project_dir / 'credentials.json'), '.'),  # DIŞARIDA TUTULACAK
     (str(project_dir / 'etiketEkle.json'), '.'),
-    (str(project_dir / 'Etiket.gsheet'), '.'),
+    # (str(project_dir / 'Etiket.gsheet'), '.'),  # DIŞARIDA TUTULACAK (SPREADSHEET_ID içeriyor)
 ]
 
 # Gizli importlar (PyQt5 ve Google modülleri)
