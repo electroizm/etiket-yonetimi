@@ -184,7 +184,7 @@ Sorun yaşarsanız:
 
 ## 🔄 Güncellemeler
 
-### Versiyon 2.1.0 (Kasım 2025)
+### v2025.11.03 (Kasım 2025)
 
 - ✅ Credentials harici dosya desteği
 - ✅ Koleksiyon bazlı fiyat tahmini
@@ -196,5 +196,4 @@ Sorun yaşarsanız:
 ---
 
 **Not:** `credentials.json` ve `etiketEkle.json` dosyaları güvenlik ve gizlilik nedeniyle bu repository'de bulunmaz. Her kullanıcı kendi dosyalarını oluşturmalıdır.
-"# etiket-yonetimi" 
 "# etiket-yonetimi" 
