@@ -24,6 +24,10 @@ token.pickle
 # Veri Dosyaları - Müşteri Bilgileri İçerebilir
 etiketEkle.json
 
+# Google Sheets Kısayolları - SPREADSHEET_ID ve Email İçerir
+*.gsheet
+Etiket.gsheet
+
 # Geçici Dosyalar
 *.log
 *.tmp
