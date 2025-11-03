@@ -76,22 +76,6 @@ exe = EXE(
     name='EtiketYonetimi',
     onefile=True,  # Ekleyin
 )
-```
-
-### Klasör Modu (--onedir) - ÖNERİLEN
-**Avantaj:** Daha hızlı başlatma
-**Dezavantaj:** Birden fazla dosya
-**Boyut:** Klasör içinde ~100-150 MB
-
-```python
-# build_exe.spec içinde:
-exe = EXE(
-    ...
-    name='EtiketYonetimi',
-    onefile=False,  # Varsayılan
-)
-```
-
 ---
 
 ## 🔧 Özelleştirmeler
@@ -197,15 +181,6 @@ datas = [
 **Çözüm 1:** Gereksiz paketleri exclude edin
 **Çözüm 2:** UPX ile sıkıştırın (otomatik)
 **Çözüm 3:** Virtual environment kullanın
-
----
-
-## 📊 Beklenen Boyutlar
-
-| Mod | Boyut | Başlatma Hızı | Dosya Sayısı |
-|-----|-------|---------------|--------------|
-| --onefile | ~50-70 MB | Yavaş (~5-10s) | 1 dosya |
-| --onedir | ~100-150 MB | Hızlı (~1-2s) | Çok dosya |
 
 ---
 

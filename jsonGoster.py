@@ -31,8 +31,50 @@ except ImportError:
 def get_base_dir():
     """Exe veya script dizinini döndür"""
     if getattr(sys, 'frozen', False):
+        # Exe olarak çalışıyorsa, exe'nin bulunduğu dizini döndür
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.abspath(__file__))
+
+
+def get_resource_path(filename):
+    """PyInstaller ile paketlenmiş resource dosyalarının yolunu döndür"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller _MEIPASS: geçici klasörde dosyalar
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, filename)
+
+
+def setup_data_file(filename):
+    """
+    Veri dosyasını exe'nin yanına kopyala (ilk çalışmada)
+    PyInstaller --onedir modunda dosyalar _internal/ içinde ama yazılamaz
+    Bu yüzden yazılabilir dosyaları exe'nin yanına kopyalamamız gerekiyor
+    """
+    if not getattr(sys, 'frozen', False):
+        # Script olarak çalışıyorsa kopyalamaya gerek yok
+        return os.path.join(get_base_dir(), filename)
+
+    # Exe olarak çalışıyorsa
+    exe_dir = os.path.dirname(sys.executable)
+    target_file = os.path.join(exe_dir, filename)
+
+    # Dosya zaten exe'nin yanındaysa, onu kullan
+    if os.path.exists(target_file):
+        return target_file
+
+    # Dosya yoksa, _internal'dan kopyala
+    source_file = get_resource_path(filename)
+    if os.path.exists(source_file):
+        import shutil
+        try:
+            shutil.copy2(source_file, target_file)
+            print(f"[SETUP] {filename} dosyası kopyalandı: {target_file}")
+        except Exception as e:
+            print(f"[HATA] {filename} kopyalanamadı: {e}")
+
+    return target_file
 
 
 class PriceLoader:
@@ -84,9 +126,8 @@ class JsonGosterWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        # Dosya yolları
-        base_dir = get_base_dir()
-        self.json_file = os.path.join(base_dir, "etiketEkle.json")
+        # Dosya yolları - PyInstaller uyumlu
+        self.json_file = setup_data_file("etiketEkle.json")
         self.json_data = None
         self.price_loader = None
         self.table_data = []  # Tüm ürün verilerini saklar

@@ -1,19 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""
+PyInstaller .spec dosyası - Etiket Programı
+--onefile modu: Tek EXE dosyası (portable)
+"""
 
 import sys
 from pathlib import Path
 
 # Proje dizini
-project_dir = Path('d:/GoogleDrive/Fiyat/Etiket')
+project_dir = Path(r'D:\GoogleDrive\Fiyat\Etiket')
 
-# Veri dosyaları (exe ile birlikte paketlenecek)
-# NOT: credentials.json GÜVENLİK nedeniyle DIŞARIDA bırakıldı
-# NOT: Etiket.gsheet SPREADSHEET_ID ve email içerdiği için DIŞARIDA bırakıldı
+# Veri dosyaları (EXE içine paketlenecek)
 datas = [
+    (str(project_dir / 'dogtasCom.py'), '.'),  # Web scraper script
+    (str(project_dir / 'jsonGoster.py'), '.'),
+    (str(project_dir / 'etiketEkle.py'), '.'),
+    (str(project_dir / 'etiketYazdir.py'), '.'),
     (str(project_dir / 'config.py'), '.'),
-    # (str(project_dir / 'credentials.json'), '.'),  # DIŞARIDA TUTULACAK
     (str(project_dir / 'etiketEkle.json'), '.'),
-    # (str(project_dir / 'Etiket.gsheet'), '.'),  # DIŞARIDA TUTULACAK (SPREADSHEET_ID içeriyor)
+    (str(project_dir / 'icon.ico'), '.'),  # Program ikonu (runtime için)
 ]
 
 # Gizli importlar (PyQt5 ve Google modülleri)
@@ -32,6 +37,9 @@ hiddenimports = [
     'bs4',
     'reportlab',
     'PIL',
+    'aiohttp',
+    'asyncio',
+    'multiprocessing',
 ]
 
 a = Analysis(
@@ -49,24 +57,28 @@ a = Analysis(
 
 pyz = PYZ(a.pure)
 
+# --onefile modu: Tek EXE dosyası
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
+    a.binaries,    # Binaries EXE içinde
+    a.zipfiles,    # Zipfiles EXE içinde
+    a.datas,       # Datas EXE içinde
     [],
-    name='EtiketYonetimi',
+    name='EtiketProgrami',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # KONSOL PENCERESİNİ GİZLE
+    console=False,  # Konsol penceresi kapalı
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # İsterseniz .ico dosyası ekleyebilirsiniz
+    icon=str(project_dir / 'icon.ico'),  # Program ikonu
 )
+
+# NOT: --onefile modunda COLLECT kullanılmaz

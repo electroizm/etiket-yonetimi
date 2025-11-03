@@ -1,11 +1,12 @@
 """
 Etiket Programı - Ana Kontrol Paneli
-Tek pencere, üstte butonlar
+PRG tarzı tek pencere, üstte butonlar
 """
 
 import sys
 import os
 import subprocess
+import multiprocessing
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
                              QLabel, QApplication, QMainWindow, QStackedWidget,
@@ -15,7 +16,48 @@ from PyQt5.QtGui import QFont, QIcon
 # Modülleri import et
 from jsonGoster import JsonGosterWidget
 from etiketYazdir import EtiketYazdirWidget
-from credentials_helper import check_credentials_file
+
+
+def get_resource_path(filename):
+    """PyInstaller ile paketlenmiş resource dosyalarının yolunu döndür"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller _MEIPASS: geçici klasörde dosyalar
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, filename)
+
+
+def setup_script_file(filename):
+    """
+    Script dosyasını exe'nin yanına kopyala (ilk çalışmada)
+    dogtasCom.py gibi subprocess ile çalıştırılan scriptler için
+    """
+    if not getattr(sys, 'frozen', False):
+        # Script olarak çalışıyorsa kopyalamaya gerek yok
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+
+    # Exe olarak çalışıyorsa
+    exe_dir = os.path.dirname(sys.executable)
+    target_file = os.path.join(exe_dir, filename)
+
+    # Dosya zaten exe'nin yanındaysa, onu kullan
+    if os.path.exists(target_file):
+        return target_file
+
+    # Dosya yoksa, _internal'dan kopyala
+    source_file = get_resource_path(filename)
+    if os.path.exists(source_file):
+        import shutil
+        try:
+            shutil.copy2(source_file, target_file)
+            print(f"[SETUP] {filename} dosyası kopyalandı: {target_file}")
+        except Exception as e:
+            print(f"[HATA] {filename} kopyalanamadı: {e}")
+    else:
+        print(f"[UYARI] Kaynak dosya bulunamadı: {source_file}")
+
+    return target_file
 
 
 class OutputReaderThread(QThread):
@@ -54,14 +96,8 @@ class DogtasComWidget(QWidget):
         super().__init__(parent)
         self.process = None
         self.reader_thread = None
-        # Exe veya script dizinini bul
-        if getattr(sys, 'frozen', False):
-            # Exe olarak çalışıyorsa
-            base_dir = os.path.dirname(sys.executable)
-        else:
-            # Script olarak çalışıyorsa
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.script_path = os.path.join(base_dir, "dogtasCom.py")
+        # dogtasCom.py script yolunu bul (PyInstaller uyumlu)
+        self.script_path = setup_script_file("dogtasCom.py")
         self.setup_ui()
 
     def setup_ui(self):
@@ -71,7 +107,7 @@ class DogtasComWidget(QWidget):
         main_layout.setSpacing(10)
 
         # Başlık
-        title_label = QLabel("🌐 dogtas.Com Web Taraması")
+        title_label = QLabel("🌐 Dogtas.Com Web Taraması")
         title_font = QFont()
         title_font.setPointSize(14)
         title_font.setBold(True)
@@ -81,8 +117,8 @@ class DogtasComWidget(QWidget):
 
         # Açıklama
         desc_label = QLabel(
-            "dogtas.com sitesinden ürün verilerini çeker ve Excel + JSON dosyalarına kaydeder.\n"
-            "⚠ İşlem uzun sürebilir (saatler). Lütfen sabırlı olun."
+            "Dogtas.com sitesinden ürün verilerini çeker ve Etiket.gsheet dosyasına Google Sheets API yardımıyla kaydeder.\n"
+            "⚠ İşlem uzun sürebilir."
         )
         desc_label.setStyleSheet("""
             QLabel {
@@ -226,15 +262,37 @@ class DogtasComWidget(QWidget):
         self.append_log("="*60)
 
         try:
-            # Subprocess'i başlat
+            # Python interpreter'ı bul
+            if getattr(sys, 'frozen', False):
+                # Exe olarak çalışıyorsa, sistem Python'unu kullan
+                python_exe = self.find_system_python()
+                if not python_exe:
+                    raise FileNotFoundError("Python interpreter bulunamadı! Lütfen Python'u sisteme yükleyin.")
+            else:
+                # Script olarak çalışıyorsa, mevcut Python'u kullan
+                python_exe = sys.executable
+
+            self.append_log(f"[INFO] Python: {python_exe}")
+            self.append_log(f"[INFO] Script: {self.script_path}")
+            self.append_log("")
+
+            # Windows'ta konsol penceresi açılmasını engelle
+            startupinfo = None
+            if sys.platform == 'win32':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
+            # Subprocess'i başlat (konsol penceresi olmadan)
             self.process = subprocess.Popen(
-                [sys.executable, self.script_path],
+                [python_exe, self.script_path],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1,
                 universal_newlines=True,
-                cwd=os.path.dirname(self.script_path)
+                cwd=os.path.dirname(self.script_path),
+                startupinfo=startupinfo
             )
 
             # Reader thread'i başlat
@@ -249,6 +307,43 @@ class DogtasComWidget(QWidget):
             self.append_log(f"[HATA] {str(e)}")
             self.start_btn.setEnabled(True)
             self.stop_btn.setEnabled(False)
+
+    def find_system_python(self):
+        """Sistem Python'unu bul"""
+        # Olası Python konumları
+        possible_paths = [
+            r"C:\Python\python.exe",
+            r"C:\Python312\python.exe",
+            r"C:\Python311\python.exe",
+            r"C:\Python310\python.exe",
+            r"C:\Python39\python.exe",
+            r"C:\Program Files\Python312\python.exe",
+            r"C:\Program Files\Python311\python.exe",
+            r"C:\Program Files\Python310\python.exe",
+        ]
+
+        # Önce olası konumlarda ara
+        for path in possible_paths:
+            if os.path.exists(path):
+                return path
+
+        # PATH'te ara
+        try:
+            result = subprocess.run(
+                ["where", "python"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                # İlk bulunan Python'u kullan
+                python_path = result.stdout.strip().split('\n')[0]
+                if os.path.exists(python_path):
+                    return python_path
+        except:
+            pass
+
+        return None
 
     def stop_scraping(self):
         """Scraping durdur"""
@@ -392,7 +487,7 @@ class MainWindow(QMainWindow):
         self.module_buttons = []
 
         modules = [
-            ("dogtas.Com", "🌐"),
+            ("Dogtas.Com", "🌐"),
             ("Etiket Ekle", "📝"),
             ("Json Göster", "📋"),
             ("Yazdır", "🖨️")
@@ -461,7 +556,18 @@ class MainWindow(QMainWindow):
                 border-top: 1px solid #bdc3c7;
             }
         """)
-        self.status_bar.showMessage("Hazır - Modül seçiniz")
+
+        # Sağ alt köşeye copyright etiketi ekle
+        copyright_label = QLabel("©   by İsmail Güneş")
+        copyright_label.setStyleSheet("""
+            QLabel {
+                color: #2c3e50;
+                font-weight: bold;
+                font-size: 11px;
+                padding: 0px 5px;
+            }
+        """)
+        self.status_bar.addPermanentWidget(copyright_label)
 
     def get_button_style(self, is_active):
         """Buton stilini döndür"""
@@ -514,10 +620,6 @@ class MainWindow(QMainWindow):
         # İlgili widget'i göster
         self.stacked_widget.setCurrentIndex(index)
 
-        # Durum çubuğunu güncelle
-        module_names = ["dogtas.Com", "Etiket Ekle", "Json Göster", "Yazdır"]
-        self.status_bar.showMessage(f"Aktif Modül: {module_names[index]}")
-
     def close_application(self):
         """Uygulamayı kapat"""
         reply = QMessageBox.question(
@@ -547,6 +649,9 @@ class MainWindow(QMainWindow):
 
 def main():
     """Ana program"""
+    # PyInstaller ile exe olarak çalışırken subprocess sorunlarını önle
+    multiprocessing.freeze_support()
+
     app = QApplication(sys.argv)
 
     # Uygulama bilgileri
@@ -554,21 +659,34 @@ def main():
     app.setApplicationVersion("2.1.0")
     app.setOrganizationName("Doğtaş")
 
-    # Credentials kontrolü (program başlamadan önce)
-    success, message = check_credentials_file()
-    if not success:
-        # Hata mesajını dialog ile göster
-        error_dialog = QMessageBox()
-        error_dialog.setIcon(QMessageBox.Critical)
-        error_dialog.setWindowTitle("Credentials Hatası")
-        error_dialog.setText("Google Sheets kimlik doğrulama dosyası bulunamadı!")
-        error_dialog.setDetailedText(message)
-        error_dialog.setStandardButtons(QMessageBox.Ok)
-        error_dialog.exec_()
-        sys.exit(1)
+    # Icon'u yükle ve ayarla (Görev çubuğu için)
+    # Önce exe'nin yanında ara, yoksa _internal/ klasöründe ara
+    if getattr(sys, 'frozen', False):
+        # Exe olarak çalışıyorsa
+        exe_dir = os.path.dirname(sys.executable)
+        icon_path = os.path.join(exe_dir, "icon.ico")
+
+        # Exe'nin yanında yoksa _internal'da ara
+        if not os.path.exists(icon_path):
+            icon_path = get_resource_path("icon.ico")
+    else:
+        # Script olarak çalışıyorsa
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icon.ico")
+
+    if os.path.exists(icon_path):
+        app_icon = QIcon(icon_path)
+        app.setWindowIcon(app_icon)
+        print(f"[INFO] Icon yuklendi: {icon_path}")
+    else:
+        print(f"[UYARI] Icon bulunamadi: {icon_path}")
 
     # Ana pencereyi oluştur
     window = MainWindow()
+
+    # Pencereye de icon'u set et
+    if os.path.exists(icon_path):
+        window.setWindowIcon(QIcon(icon_path))
+
     window.showMaximized()  # Tam ekran (maximize) olarak aç
 
     sys.exit(app.exec_())

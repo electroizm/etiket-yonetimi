@@ -34,6 +34,47 @@ def get_base_dir():
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def get_resource_path(filename):
+    """PyInstaller ile paketlenmiş resource dosyalarının yolunu döndür"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller _MEIPASS: geçici klasörde dosyalar
+        base_path = getattr(sys, '_MEIPASS', os.path.dirname(sys.executable))
+    else:
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, filename)
+
+
+def setup_data_file(filename):
+    """
+    Veri dosyasını exe'nin yanına kopyala (ilk çalışmada)
+    PyInstaller --onedir modunda dosyalar _internal/ içinde ama yazılamaz
+    Bu yüzden yazılabilir dosyaları exe'nin yanına kopyalamamız gerekiyor
+    """
+    if not getattr(sys, 'frozen', False):
+        # Script olarak çalışıyorsa kopyalamaya gerek yok
+        return os.path.join(get_base_dir(), filename)
+
+    # Exe olarak çalışıyorsa
+    exe_dir = os.path.dirname(sys.executable)
+    target_file = os.path.join(exe_dir, filename)
+
+    # Dosya zaten exe'nin yanındaysa, onu kullan
+    if os.path.exists(target_file):
+        return target_file
+
+    # Dosya yoksa, _internal'dan kopyala
+    source_file = get_resource_path(filename)
+    if os.path.exists(source_file):
+        import shutil
+        try:
+            shutil.copy2(source_file, target_file)
+            print(f"[SETUP] {filename} dosyası kopyalandı: {target_file}")
+        except Exception as e:
+            print(f"[HATA] {filename} kopyalanamadı: {e}")
+
+    return target_file
+
+
 class EtiketListesiWindow(QMainWindow):
     """Etiket Listesi penceresi - stok_module.py ve ssh_module.py stilinde"""
 
@@ -56,8 +97,8 @@ class EtiketListesiWindow(QMainWindow):
         self.checked_state = {}  # {sku: True/False}
         self.miktar_state = {}   # {sku: "miktar"}
 
-        # JSON dosya yolu
-        self.json_file = os.path.join(get_base_dir(), "etiketEkle.json")
+        # JSON dosya yolu - PyInstaller uyumlu
+        self.json_file = setup_data_file("etiketEkle.json")
 
         # Yatak Odası takım kombinasyonları tanımlamaları (Regex pattern'ler)
         self.yatak_odasi_kombinasyonlari = {
