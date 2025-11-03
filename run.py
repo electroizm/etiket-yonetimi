@@ -96,8 +96,8 @@ class DogtasComWidget(QWidget):
         super().__init__(parent)
         self.process = None
         self.reader_thread = None
-        # dogtasCom.py script yolunu bul (PyInstaller uyumlu)
-        self.script_path = setup_script_file("dogtasCom.py")
+        # dogtasCom.exe executable yolunu bul (PyInstaller uyumlu)
+        self.script_path = setup_script_file("dogtasCom.exe")
         self.setup_ui()
 
     def setup_ui(self):
@@ -262,18 +262,8 @@ class DogtasComWidget(QWidget):
         self.append_log("="*60)
 
         try:
-            # Python interpreter'ı bul
-            if getattr(sys, 'frozen', False):
-                # Exe olarak çalışıyorsa, sistem Python'unu kullan
-                python_exe = self.find_system_python()
-                if not python_exe:
-                    raise FileNotFoundError("Python interpreter bulunamadı! Lütfen Python'u sisteme yükleyin.")
-            else:
-                # Script olarak çalışıyorsa, mevcut Python'u kullan
-                python_exe = sys.executable
-
-            self.append_log(f"[INFO] Python: {python_exe}")
-            self.append_log(f"[INFO] Script: {self.script_path}")
+            # dogtasCom.exe doğrudan çalıştırılır (Python interpreter'a gerek yok)
+            self.append_log(f"[INFO] Executable: {self.script_path}")
             self.append_log("")
 
             # Windows'ta konsol penceresi açılmasını engelle
@@ -285,7 +275,7 @@ class DogtasComWidget(QWidget):
 
             # Subprocess'i başlat (konsol penceresi olmadan)
             self.process = subprocess.Popen(
-                [python_exe, self.script_path],
+                [self.script_path],  # Sadece exe dosyası
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,

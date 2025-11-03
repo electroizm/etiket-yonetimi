@@ -25,14 +25,29 @@ if exist "icon.ico" (
 echo.
 
 REM Eski build dosyalarını temizle
-echo [2/4] Eski build dosyalari temizleniyor...
+echo [2/6] Eski build dosyalari temizleniyor...
 if exist "build" rmdir /s /q "build"
 if exist "dist\EtiketProgrami.exe" del /f /q "dist\EtiketProgrami.exe"
+if exist "dist\dogtasCom.exe" del /f /q "dist\dogtasCom.exe"
 echo     [OK] Temizlik tamamlandi
 echo.
 
+REM dogtasCom.exe build et (önce)
+echo [3/6] dogtasCom.exe build ediliyor...
+echo     Web scraper icin ayri EXE (Python dependency yok)
+echo.
+C:\Python\python.exe -m PyInstaller dogtasCom.spec --clean
+if errorlevel 1 (
+    echo.
+    echo     [HATA] dogtasCom.exe build basarisiz!
+    pause
+    exit /b 1
+)
+echo     [OK] dogtasCom.exe olusturuldu
+echo.
+
 REM PyInstaller ile build (--onefile)
-echo [3/4] PyInstaller calistiriliyor...
+echo [4/6] PyInstaller calistiriliyor (ana program)...
 echo     Spec dosyasi: EtiketProgrami_onefile.spec
 echo     Mod: --onefile (tek dosya modu)
 echo     Uyari: Build suresi uzun olabilir (1-3 dakika)
@@ -52,18 +67,30 @@ echo.
 echo     [OK] Build tamamlandi
 echo.
 
+REM dogtasCom.exe'yi ana EXE'nin yanina kopyala
+echo [5/6] dogtasCom.exe kopyalaniyor...
+if exist "dist\dogtasCom.exe" (
+    REM Zaten dist/ altında olmalı, kontrol et
+    echo     [OK] dogtasCom.exe dist/ klasorunde mevcut
+) else (
+    echo     [HATA] dogtasCom.exe bulunamadi!
+)
+echo.
+
 REM Sonuçları göster
-echo [4/4] Build sonuclari:
+echo [6/6] Build sonuclari:
 echo.
 
 if exist "dist\EtiketProgrami.exe" (
-    echo     [OK] TEK EXE DOSYASI olusturuldu:
-    echo          dist\EtiketProgrami.exe
+    echo     [OK] EXE DOSYALARI olusturuldu:
+    echo          1. dist\EtiketProgrami.exe (ana program)
+    echo          2. dist\dogtasCom.exe (web scraper)
     echo.
 
-    REM Dosya boyutunu göster
-    echo     [INFO] Dosya boyutu:
+    REM Dosya boyutlarını göster
+    echo     [INFO] Dosya boyutlari:
     dir "dist\EtiketProgrami.exe" | findstr /C:"EtiketProgrami.exe"
+    dir "dist\dogtasCom.exe" | findstr /C:"dogtasCom.exe"
     echo.
 
     REM Icon kontrolu
@@ -91,11 +118,12 @@ if exist "dist\EtiketProgrami.exe" (
     echo   2. etiketEkle.json gibi yazilabilir dosyalar
     echo      EXE'nin YANINDA olusturulacak
     echo.
-    echo   3. credentials.json dosyasini
+    echo   3. credentials.json ve token.pickle dosyalarini
     echo      EXE'nin yanina koymayi UNUTMAYIN!
     echo.
-    echo   4. Web Taramasi icin Python GEREKLI
-    echo      (dogtasCom.py subprocess olarak calisir)
+    echo   4. dogtasCom.exe web taramasi icin
+    echo      otomatik olarak calistirilir
+    echo      (Python kurulumuna GEREK YOK)
     echo.
     echo ===== ICON KONTROL =====
     echo   - Dosya Gezgini: Icon gorunmeli

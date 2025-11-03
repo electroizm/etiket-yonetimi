@@ -43,3 +43,7 @@ dogtas_backup_*.xlsx
 # Test Dosyaları
 test_*.py
 *_test.py
+
+# PDF Çıktıları (etiket yazdırma)
+Etiket_*.pdf
+*.pdf
