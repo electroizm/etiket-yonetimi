@@ -14,14 +14,8 @@ def get_base_dir():
 # Google Sheets yapılandırması
 SPREADSHEET_ID = "1-H9fA5dD9rxqcPd0VymKjMgggxUl7hAZBK0csysN-3k"
 
-# Credentials dosya yolu
-CREDENTIALS_FILE = os.path.join(get_base_dir(), "credentials.json")
-
-# Google Sheets API scope
-SCOPES = [
-    'https://spreadsheets.google.com/feeds',
-    'https://www.googleapis.com/auth/drive'
-]
+# Service Account için Google Sheets API scope
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 
 # Etiket Resimleri (Google Drive Links)
 # NOT: Google Drive'da dosyaları public paylaşıma açın ve FILE_ID'yi aşağıya yapıştırın

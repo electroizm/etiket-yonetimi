@@ -477,7 +477,7 @@ class JsonGosterWidget(QWidget):
             return None
 
     def save_missing_skus_to_hata(self):
-        """Eksik SKU'ları Google Sheets Hata sayfasına kaydet"""
+        """Eksik SKU'ları Google Sheets Hata sayfasına kaydet (Service Account kullanarak)"""
         if not self.missing_skus:
             return
 
@@ -485,39 +485,18 @@ class JsonGosterWidget(QWidget):
             return
 
         try:
+            # Service Account authentication
+            service_account_file = os.path.join(get_base_dir(), 'service-account.json')
 
-            # OAuth credentials ile authentication (dogtasCom.py mantığı)
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
-            from google_auth_oauthlib.flow import InstalledAppFlow
-            import pickle
-
-            SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-
-            creds = None
-            token_path = os.path.join(get_base_dir(), 'token.pickle')
-            creds_path = os.path.join(get_base_dir(), 'credentials.json')
-
-            if not os.path.exists(creds_path):
-                print("[ERROR] credentials.json dosyası bulunamadı")
+            if not os.path.exists(service_account_file):
+                print("[ERROR] service-account.json dosyası bulunamadı")
+                print(f"[INFO] Beklenen konum: {service_account_file}")
                 return
 
-            # Token varsa yükle
-            if os.path.exists(token_path):
-                with open(token_path, 'rb') as token:
-                    creds = pickle.load(token)
+            from google.oauth2.service_account import Credentials
 
-            # Token yoksa veya geçersizse, yenile veya yeni al
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-                    creds = flow.run_local_server(port=0)
-
-                # Token'ı kaydet
-                with open(token_path, 'wb') as token:
-                    pickle.dump(creds, token)
+            SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+            creds = Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
             # gspread client oluştur
             client = gspread.authorize(creds)

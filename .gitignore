@@ -22,6 +22,7 @@ EtiketProgrami.exe
 credentials.json
 credentials.encrypted
 token.pickle
+service-account.json
 
 # Veri Dosyaları - Müşteri Bilgileri İçerebilir
 etiketEkle.json

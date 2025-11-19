@@ -397,7 +397,7 @@ def read_hata_from_gsheets() -> List[str]:
 
 
 def clear_hata_sheet():
-    """Google Sheets Hata sayfasını temizle"""
+    """Google Sheets Hata sayfasını temizle (Service Account kullanarak)"""
     try:
         # SPREADSHEET_ID'yi yükle
         spreadsheet_id = load_env_settings()
@@ -405,52 +405,21 @@ def clear_hata_sheet():
             print("[WARNING] SPREADSHEET_ID bulunamadı")
             return
 
-        # OAuth credentials
-        from google.auth.transport.requests import Request
-        from google.oauth2.credentials import Credentials
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        import pickle
+        # Service Account authentication
+        service_account_file = os.path.join(Path(__file__).parent, 'service-account.json')
 
-        SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-
-        creds = None
-        token_path = os.path.join(Path(__file__).parent, 'token.pickle')
-        creds_path = None
-
-        # credentials.json dosyasını bul
-        possible_paths = [
-            os.path.join(Path(__file__).parent, 'credentials.json'),
-            os.path.join(Path.home(), 'credentials.json'),
-        ]
-
-        for path in possible_paths:
-            if os.path.exists(path):
-                creds_path = path
-                break
-
-        if not creds_path:
-            print("[ERROR] credentials.json dosyası bulunamadı")
+        if not os.path.exists(service_account_file):
+            print("[ERROR] service-account.json dosyası bulunamadı")
+            print(f"[INFO] Beklenen konum: {service_account_file}")
             return
 
-        # Token varsa yükle
-        if os.path.exists(token_path):
-            with open(token_path, 'rb') as token:
-                creds = pickle.load(token)
+        from google.oauth2.service_account import Credentials
+        import gspread
 
-        # Token yoksa veya geçersizse, yenile veya yeni al
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-                creds = flow.run_local_server(port=0)
-
-            # Token'ı kaydet
-            with open(token_path, 'wb') as token:
-                pickle.dump(creds, token)
+        SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+        creds = Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
         # gspread client oluştur
-        import gspread
         client = gspread.authorize(creds)
 
         # Spreadsheet'i aç
@@ -860,7 +829,7 @@ class DogtasAsyncScraper:
         return all_products
 
     def save_to_gsheets(self, data: List[Dict], sheet_name: str):
-        """Google Sheets'e kaydet (OAuth credentials kullanarak)"""
+        """Google Sheets'e kaydet (Service Account kullanarak)"""
         if not data:
             print("[WARNING] Kaydedilecek veri yok")
             return
@@ -911,38 +880,16 @@ class DogtasAsyncScraper:
                 print("[ERROR] SPREADSHEET_ID bulunamadı")
                 return
 
-            # OAuth credentials ile authentication
-            from google.auth.transport.requests import Request
-            from google.oauth2.credentials import Credentials
-            from google_auth_oauthlib.flow import InstalledAppFlow
-            import pickle
+            # Service Account authentication
+            service_account_file = os.path.join(get_base_dir(), 'service-account.json')
 
-            SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-
-            creds = None
-            token_path = os.path.join(get_base_dir(), 'token.pickle')
-            creds_path = self._find_credentials_file()
-
-            if not creds_path:
-                print("[ERROR] credentials.json dosyası bulunamadı")
+            if not os.path.exists(service_account_file):
+                print("[ERROR] service-account.json dosyası bulunamadı")
+                print(f"[INFO] Beklenen konum: {service_account_file}")
                 return
 
-            # Token varsa yükle
-            if os.path.exists(token_path):
-                with open(token_path, 'rb') as token:
-                    creds = pickle.load(token)
-
-            # Token yoksa veya geçersizse, yenile veya yeni al
-            if not creds or not creds.valid:
-                if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
-                    flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-                    creds = flow.run_local_server(port=0)
-
-                # Token'ı kaydet
-                with open(token_path, 'wb') as token:
-                    pickle.dump(creds, token)
+            SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+            creds = Credentials.from_service_account_file(service_account_file, scopes=SCOPES)
 
             # gspread client oluştur
             client = gspread.authorize(creds)
@@ -970,17 +917,6 @@ class DogtasAsyncScraper:
             print(f"[ERROR] Google Sheets kayıt hatası: {e}")
             import traceback
             traceback.print_exc()
-
-    def _find_credentials_file(self):
-        """Google Sheets credentials dosyasını bul"""
-        try:
-            from config import CREDENTIALS_FILE
-            if os.path.exists(CREDENTIALS_FILE):
-                return CREDENTIALS_FILE
-            return None
-        except Exception as e:
-            print(f"[ERROR] Credentials dosyası bulunamadı: {e}")
-            return None
 
     def run(self, max_pages=None):
         """Sync wrapper - main()'den cagirmak icin"""
