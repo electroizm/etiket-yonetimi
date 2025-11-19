@@ -28,8 +28,8 @@ service-account.json
 etiketEkle.json
 
 # Google Sheets Kısayolları - SPREADSHEET_ID ve Email İçerir
-*.gsheet
-Etiket.gsheet
+# NOT: Etiket.gsheet GitHub'a dahil edildi (genel kullanım için)
+# *.gsheet
 
 # Geçici Dosyalar
 *.log
